@@ -125,6 +125,7 @@ const SearchScreen = ({teamId}: Props) => {
         setFileChannelIds(channels?.length ? channels : emptyChannelIds);
 
         setShowResults(true);
+        hideHeader();
         setLoading(false);
     }, [handleCancelAndClearSearch]);
 
