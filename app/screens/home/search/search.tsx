@@ -300,7 +300,7 @@ const SearchScreen = ({teamId}: Props) => {
                 style={styles.flex}
                 edges={EDGES}
             >
-                <Animated.View style={showResults ? null : animated}>
+                <Animated.View style={animated}>
                     <Animated.View style={top}>
                         <RoundedHeaderContext/>
                         {lastSearchedValue && !loading && header}
