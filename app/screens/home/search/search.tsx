@@ -37,8 +37,7 @@ const dummyData = [1];
 const AutocompletePaddingTop = -4;
 const AutocompleteZindex = 11;
 const marginFromRoundedHeaderContext = 7;
-
-// const ResultsHeaderHeight = 55;
+const ResultsHeaderHeight = 55;
 
 type Props = {
     teamId: string;
@@ -168,16 +167,6 @@ const SearchScreen = ({teamId}: Props) => {
         handleSearch(newTeamId, lastSearchedValue);
     }, [lastSearchedValue]);
 
-    const top = useAnimatedStyle(() => {
-        const topMarginLocked = lockValue?.value ? lockValue.value + marginFromRoundedHeaderContext : 0;
-        const topMarginScollable = headerHeight.value;
-        const topMargin = lockValue.value ? topMarginLocked : topMarginScollable;
-        return {
-            top: topMargin,
-            zIndex: lastSearchedValue ? 10 : 0,
-        };
-    }, [headerHeight.value, lastSearchedValue, lockValue.value]);
-
     const loadingComponent = useMemo(() => (
         <Loading
             containerStyle={[styles.loading, {paddingTop: scrollPaddingTop}]}
@@ -198,18 +187,24 @@ const SearchScreen = ({teamId}: Props) => {
                 teamId={searchTeamId}
             />
         </Animated.View>
-    ), [searchValue, searchTeamId, handleRecentSearch, handleTextChange]);
+    ), [searchValue, searchTeamId, scrollPaddingTop, handleRecentSearch, handleTextChange]);
 
-    const resultsComponent = useMemo(() => (
-        <Results
-            selectedTab={selectedTab}
-            searchValue={lastSearchedValue}
-            postIds={postIds}
-            paddingTop={top}
-            fileInfos={fileInfos}
-            fileChannelIds={fileChannelIds}
-        />
-    ), [selectedTab, lastSearchedValue, postIds, fileInfos, top, fileChannelIds]);
+    const resultsComponent = useMemo(() => {
+        let paddingTop = 0;
+        if (lockValue?.value) {
+            paddingTop = lockValue.value + marginFromRoundedHeaderContext + ResultsHeaderHeight;
+        }
+        return (
+            <Results
+                selectedTab={selectedTab}
+                searchValue={lastSearchedValue}
+                postIds={postIds}
+                paddingTop={paddingTop}
+                fileInfos={fileInfos}
+                fileChannelIds={fileChannelIds}
+            />
+        );
+    }, [lockValue.value, selectedTab, lastSearchedValue, postIds, fileInfos, fileChannelIds]);
 
     const renderItem = useCallback(() => {
         if (loading) {
@@ -240,6 +235,16 @@ const SearchScreen = ({teamId}: Props) => {
             transform: [{translateX: withTiming(stateIndex < searchScreenIndex ? 25 : -25, {duration: 150})}],
         };
     }, [isFocused, stateIndex]);
+
+    const top = useAnimatedStyle(() => {
+        const topMarginLocked = lockValue?.value ? lockValue.value + marginFromRoundedHeaderContext : 0;
+        const topMarginScollable = headerHeight.value;
+        const topMargin = lockValue.value ? topMarginLocked : topMarginScollable;
+        return {
+            top: topMargin,
+            zIndex: lastSearchedValue ? 10 : 0,
+        };
+    }, [headerHeight.value, lastSearchedValue, lockValue.value]);
 
     const header = useMemo(() => {
         return (
@@ -305,7 +310,6 @@ const SearchScreen = ({teamId}: Props) => {
                         <RoundedHeaderContext/>
                         {lastSearchedValue && !loading && header}
                     </Animated.View>
-                    {!showResults &&
                     <AnimatedFlatList
                         data={dummyData}
                         keyboardShouldPersistTaps='handled'
@@ -320,8 +324,6 @@ const SearchScreen = ({teamId}: Props) => {
                         ref={scrollRef}
                         renderItem={renderItem}
                     />
-                    }
-                    {showResults && resultsComponent}
                 </Animated.View>
             </SafeAreaView>
         </FreezeScreen>
