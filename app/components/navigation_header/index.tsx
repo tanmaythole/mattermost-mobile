@@ -64,7 +64,8 @@ const NavigationHeader = ({
     const containerHeight = useAnimatedStyle(() => {
         const minHeight = defaultHeight + insets.top;
         const value = -(scrollValue?.value || 0);
-        const height = lockValue?.value ? lockValue.value : ((isLargeTitle ? largeHeight : defaultHeight)) + value;
+        const calculatedHeight = (isLargeTitle ? largeHeight : defaultHeight) + value;
+        const height = lockValue?.value ? lockValue.value : calculatedHeight;
         const maxHeight = largeHeight + insets.top + MAX_OVERSCROLL;
         return {
             height: Math.max(height, minHeight),
