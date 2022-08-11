@@ -147,10 +147,15 @@ export const useCollapsibleHeader = <T>(isLargeTitle: boolean, onSnap?: (offset:
         lockValue.value = null;
     }, []);
 
+    const scrollPaddingTop = useMemo(() => {
+        const defaultPaddingTop = isLargeTitle ? largeHeight : defaultHeight;
+        return (lockValue?.value ? lockValue.value : defaultPaddingTop) + insets.top;
+    }, [isLargeTitle, largeHeight, lockValue.value, insets.top, defaultHeight]);
+
     return {
         defaultHeight,
         largeHeight,
-        scrollPaddingTop: (isLargeTitle ? largeHeight : defaultHeight) + insets.top,
+        scrollPaddingTop,
         scrollRef: animatedRef as unknown as React.RefObject<T>,
         scrollValue,
         onScroll,

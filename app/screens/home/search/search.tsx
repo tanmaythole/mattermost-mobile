@@ -36,6 +36,9 @@ const dummyData = [1];
 
 const AutocompletePaddingTop = -4;
 const AutocompleteZindex = 11;
+const marginFromRoundedHeaderContext = 7;
+
+// const ResultsHeaderHeight = 55;
 
 type Props = {
     teamId: string;
@@ -165,6 +168,16 @@ const SearchScreen = ({teamId}: Props) => {
         handleSearch(newTeamId, lastSearchedValue);
     }, [lastSearchedValue]);
 
+    const top = useAnimatedStyle(() => {
+        const topMarginLocked = lockValue?.value ? lockValue.value + marginFromRoundedHeaderContext : 0;
+        const topMarginScollable = headerHeight.value;
+        const topMargin = lockValue.value ? topMarginLocked : topMarginScollable;
+        return {
+            top: topMargin,
+            zIndex: lastSearchedValue ? 10 : 0,
+        };
+    }, [headerHeight.value, lastSearchedValue, lockValue.value]);
+
     const loadingComponent = useMemo(() => (
         <Loading
             containerStyle={[styles.loading, {paddingTop: scrollPaddingTop}]}
@@ -174,13 +187,17 @@ const SearchScreen = ({teamId}: Props) => {
     ), [theme, scrollPaddingTop]);
 
     const initialComponent = useMemo(() => (
-        <Initial
-            searchValue={searchValue}
-            setRecentValue={handleRecentSearch}
-            setSearchValue={handleTextChange}
-            setTeamId={setSearchTeamId}
-            teamId={searchTeamId}
-        />
+        <Animated.View
+            style={{paddingTop: scrollPaddingTop}}
+        >
+            <Initial
+                searchValue={searchValue}
+                setRecentValue={handleRecentSearch}
+                setSearchValue={handleTextChange}
+                setTeamId={setSearchTeamId}
+                teamId={searchTeamId}
+            />
+        </Animated.View>
     ), [searchValue, searchTeamId, handleRecentSearch, handleTextChange]);
 
     const resultsComponent = useMemo(() => (
@@ -188,11 +205,11 @@ const SearchScreen = ({teamId}: Props) => {
             selectedTab={selectedTab}
             searchValue={lastSearchedValue}
             postIds={postIds}
+            paddingTop={top}
             fileInfos={fileInfos}
-            scrollPaddingTop={scrollPaddingTop}
             fileChannelIds={fileChannelIds}
         />
-    ), [selectedTab, lastSearchedValue, postIds, fileInfos, scrollPaddingTop, fileChannelIds]);
+    ), [selectedTab, lastSearchedValue, postIds, fileInfos, top, fileChannelIds]);
 
     const renderItem = useCallback(() => {
         if (loading) {
@@ -203,12 +220,11 @@ const SearchScreen = ({teamId}: Props) => {
         }
         return resultsComponent;
     }, [
+        scrollPaddingTop,
         loading && loadingComponent,
         !loading && !showResults && initialComponent,
         !loading && showResults && resultsComponent,
     ]);
-
-    const paddingTop = useMemo(() => ({paddingTop: scrollPaddingTop, flexGrow: 1}), [scrollPaddingTop]);
 
     const animated = useAnimatedStyle(() => {
         if (isFocused) {
@@ -225,16 +241,8 @@ const SearchScreen = ({teamId}: Props) => {
         };
     }, [isFocused, stateIndex]);
 
-    const top = useAnimatedStyle(() => {
-        return {
-            top: lockValue?.value ? lockValue.value : headerHeight.value,
-            zIndex: lastSearchedValue ? 10 : 0,
-        };
-    }, [headerHeight.value, lastSearchedValue]);
-
-    let header = null;
-    if (lastSearchedValue && !loading) {
-        header = (
+    const header = useMemo(() => {
+        return (
             <Header
                 teamId={searchTeamId}
                 setTeamId={handleResultsTeamChange}
@@ -246,7 +254,15 @@ const SearchScreen = ({teamId}: Props) => {
                 selectedFilter={filter}
             />
         );
-    }
+    }, [searchTeamId,
+        handleResultsTeamChange,
+        handleFilterChange,
+        postIds.length,
+        selectedTab,
+        fileInfos.length,
+        filter,
+    ]);
+
     const autocomplete = useMemo(() => (
         <Autocomplete
             paddingTop={AutocompletePaddingTop}
@@ -284,28 +300,28 @@ const SearchScreen = ({teamId}: Props) => {
                 style={styles.flex}
                 edges={EDGES}
             >
-                <Animated.View style={animated}>
+                <Animated.View style={showResults ? null : animated}>
                     <Animated.View style={top}>
                         <RoundedHeaderContext/>
-                        {header}
-                        <AnimatedFlatList
-                            data={dummyData}
-
-                            //contentContainerStyle={paddingTop}
-                            // contentContainerStyle={{paddingTop: 40}}
-                            keyboardShouldPersistTaps='handled'
-                            keyboardDismissMode={'interactive'}
-                            nestedScrollEnabled={true}
-                            indicatorStyle='black'
-                            onScroll={onScroll}
-                            scrollEventThrottle={16}
-                            removeClippedSubviews={false}
-                            scrollToOverflowEnabled={true}
-                            overScrollMode='always'
-                            ref={scrollRef}
-                            renderItem={renderItem}
-                        />
+                        {lastSearchedValue && !loading && header}
                     </Animated.View>
+                    {!showResults &&
+                    <AnimatedFlatList
+                        data={dummyData}
+                        keyboardShouldPersistTaps='handled'
+                        keyboardDismissMode={'interactive'}
+                        nestedScrollEnabled={true}
+                        indicatorStyle='black'
+                        onScroll={onScroll}
+                        scrollEventThrottle={16}
+                        removeClippedSubviews={false}
+                        scrollToOverflowEnabled={true}
+                        overScrollMode='always'
+                        ref={scrollRef}
+                        renderItem={renderItem}
+                    />
+                    }
+                    {showResults && resultsComponent}
                 </Animated.View>
             </SafeAreaView>
         </FreezeScreen>
