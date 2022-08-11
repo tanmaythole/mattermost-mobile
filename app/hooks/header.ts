@@ -33,7 +33,9 @@ export const useDefaultHeaderHeight = () => {
 
 export const useLargeHeaderHeight = () => {
     const defaultHeight = useDefaultHeaderHeight();
-    return defaultHeight + ViewConstants.LARGE_HEADER_TITLE + ViewConstants.HEADER_WITH_SUBTITLE;
+    const titleHeight = ViewConstants.LARGE_HEADER_TITLE;
+    const subtitleHeight = ViewConstants.HEADER_WITH_SUBTITLE;
+    return defaultHeight + titleHeight + subtitleHeight;
 };
 
 export const useHeaderHeight = () => {
