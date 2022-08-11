@@ -52,6 +52,7 @@ export const useCollapsibleHeader = <T>(isLargeTitle: boolean, onSnap?: (offset:
     const animatedRef = useAnimatedRef<Animated.ScrollView>();
     const {largeHeight, defaultHeight} = useHeaderHeight();
     const scrollValue = useSharedValue(0);
+    const lockValue = useSharedValue<number | null>(null);
     const autoScroll = useSharedValue(false);
     const snapping = useSharedValue(false);
 
@@ -134,6 +135,10 @@ export const useCollapsibleHeader = <T>(isLargeTitle: boolean, onSnap?: (offset:
                 // No scroll for section lists?
             }
         }
+    }, [largeHeight, defaultHeight]);
+
+    const hideAndLock = useCallback(() => {
+        lockValue.value = largeHeight - defaultHeight;
     }, [largeHeight, defaultHeight]);
 
     return {

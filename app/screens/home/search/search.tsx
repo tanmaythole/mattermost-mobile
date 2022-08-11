@@ -91,9 +91,19 @@ const SearchScreen = ({teamId}: Props) => {
         scrollRef.current?.scrollToOffset({offset, animated: true});
     };
 
-    const {scrollPaddingTop, scrollRef, scrollValue, onScroll, headerHeight, hideHeader} = useCollapsibleHeader<FlatList>(true, onSnap);
+    const {scrollPaddingTop,
+        scrollRef,
+        scrollValue,
+        onScroll,
+        headerHeight,
+        hideHeader,
+        lockValue,
+        hideAndLock,
+        showAndUnlock,
+    } = useCollapsibleHeader<FlatList>(true, onSnap);
 
     const handleCancelAndClearSearch = useCallback(() => {
+        showAndUnlock();
         setSearchValue('');
         setLastSearchedValue('');
         setFilter(FileFilters.ALL);
@@ -126,6 +136,7 @@ const SearchScreen = ({teamId}: Props) => {
 
         setShowResults(true);
         hideHeader();
+        hideAndLock();
         setLoading(false);
     }, [handleCancelAndClearSearch]);
 
@@ -216,10 +227,10 @@ const SearchScreen = ({teamId}: Props) => {
 
     const top = useAnimatedStyle(() => {
         return {
-            top: headerHeight.value,
+            top: lockValue?.value ? lockValue.value : headerHeight.value,
             zIndex: lastSearchedValue ? 10 : 0,
         };
-    }, [headerHeight, lastSearchedValue]);
+    }, [headerHeight.value, lastSearchedValue]);
 
     let header = null;
     if (lastSearchedValue && !loading) {
@@ -256,6 +267,7 @@ const SearchScreen = ({teamId}: Props) => {
                 title={intl.formatMessage({id: 'screen.search.title', defaultMessage: 'Search'})}
                 hasSearch={true}
                 scrollValue={scrollValue}
+                lockValue={lockValue}
                 hideHeader={hideHeader}
                 onChangeText={handleTextChange}
                 onSubmitEditing={onSubmit}
@@ -276,22 +288,24 @@ const SearchScreen = ({teamId}: Props) => {
                     <Animated.View style={top}>
                         <RoundedHeaderContext/>
                         {header}
+                        <AnimatedFlatList
+                            data={dummyData}
+
+                            //contentContainerStyle={paddingTop}
+                            // contentContainerStyle={{paddingTop: 40}}
+                            keyboardShouldPersistTaps='handled'
+                            keyboardDismissMode={'interactive'}
+                            nestedScrollEnabled={true}
+                            indicatorStyle='black'
+                            onScroll={onScroll}
+                            scrollEventThrottle={16}
+                            removeClippedSubviews={false}
+                            scrollToOverflowEnabled={true}
+                            overScrollMode='always'
+                            ref={scrollRef}
+                            renderItem={renderItem}
+                        />
                     </Animated.View>
-                    <AnimatedFlatList
-                        data={dummyData}
-                        contentContainerStyle={paddingTop}
-                        keyboardShouldPersistTaps='handled'
-                        keyboardDismissMode={'interactive'}
-                        nestedScrollEnabled={true}
-                        indicatorStyle='black'
-                        onScroll={onScroll}
-                        scrollEventThrottle={16}
-                        removeClippedSubviews={false}
-                        scrollToOverflowEnabled={true}
-                        overScrollMode='always'
-                        ref={scrollRef}
-                        renderItem={renderItem}
-                    />
                 </Animated.View>
             </SafeAreaView>
         </FreezeScreen>
