@@ -36,7 +36,8 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme: Theme) => {
     return {
         container: {
             marginTop: 10,
-            backgroundColor: theme.centerChannelBg,
+            backgroundColor: 'yellow',
+            opacity: 0.50,
             borderBottomWidth: 1,
             borderBottomColor: changeOpacity(theme.centerChannelColor, 0.1),
         },

@@ -15,7 +15,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme: Theme) => ({
         position: 'absolute',
     },
     content: {
-        backgroundColor: theme.centerChannelBg,
+        backgroundColor: 'red',
         borderTopLeftRadius: 12,
         borderTopRightRadius: 12,
         flex: 1,
