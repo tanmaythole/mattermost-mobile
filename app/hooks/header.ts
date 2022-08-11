@@ -141,6 +141,10 @@ export const useCollapsibleHeader = <T>(isLargeTitle: boolean, onSnap?: (offset:
         lockValue.value = largeHeight - defaultHeight;
     }, [largeHeight, defaultHeight]);
 
+    const showAndUnlock = useCallback(() => {
+        lockValue.value = null;
+    }, [largeHeight, defaultHeight]);
+
     return {
         defaultHeight,
         largeHeight,
@@ -149,6 +153,9 @@ export const useCollapsibleHeader = <T>(isLargeTitle: boolean, onSnap?: (offset:
         scrollValue,
         onScroll,
         hideHeader,
+        hideAndLock,
+        showAndUnlock,
+        lockValue,
         headerHeight,
     };
 };
