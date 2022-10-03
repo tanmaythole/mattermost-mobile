@@ -1,8 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+import {RTCIceServer} from '@calls/rtcpeer/types';
+
 import type UserModel from '@typings/database/models/servers/user';
-import type {ConfigurationParamWithUrls, ConfigurationParamWithUrl} from 'react-native-webrtc';
 
 export type CallsState = {
     serverUrl: string;
@@ -93,7 +94,7 @@ export type CallsConnection = {
 
 export type ServerCallsConfig = {
     ICEServers?: string[]; // deprecated
-    ICEServersConfigs?: ICEServersConfigs;
+    ICEServersConfigs: RTCIceServer[];
     AllowEnableCalls: boolean;
     DefaultEnabled: boolean;
     NeedsTURNCredentials: boolean;
@@ -117,8 +118,6 @@ export const DefaultCallsConfig = {
     sku_short_name: '',
     MaxCallParticipants: 0,
 } as CallsConfig;
-
-export type ICEServersConfigs = Array<ConfigurationParamWithUrls | ConfigurationParamWithUrl>;
 
 export type ApiResp = {
     message?: string;

@@ -85,7 +85,7 @@
     "react-native-user-agent": "2.3.1",
     "react-native-vector-icons": "9.2.0",
     "react-native-video": "5.2.0",
-    "react-native-webrtc": "github:mattermost/react-native-webrtc",
+    "react-native-webrtc": "106.0.0-beta.2",
     "react-native-webview": "11.23.0",
     "react-syntax-highlighter": "15.5.0",
     "readable-stream": "3.6.0",

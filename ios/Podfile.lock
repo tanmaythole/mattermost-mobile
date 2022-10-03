@@ -370,8 +370,8 @@ PODS:
     - react-native-video/Video (= 5.2.0)
   - react-native-video/Video (5.2.0):
     - React-Core
-  - react-native-webrtc (1.75.3):
-    - React
+  - react-native-webrtc (106.0.0-beta.2):
+    - React-Core
   - react-native-webview (11.23.0):
     - React-Core
   - React-perflogger (0.69.3)
@@ -919,7 +919,7 @@ SPEC CHECKSUMS:
   react-native-safe-area-context: 6c12e3859b6f27b25de4fee8201cfb858432d8de
   react-native-user-agent: a90a1e839b99801baad67a73dd6f361a52aa3cf1
   react-native-video: a4c2635d0802f983594b7057e1bce8f442f0ad28
-  react-native-webrtc: 86d841823e66d68cc1f86712db1c2956056bf0c2
+  react-native-webrtc: 64e05c87833fc3776abeace324fbce2f0434e7ba
   react-native-webview: e771bc375f789ebfa02a26939a57dbc6fa897336
   React-perflogger: 39d2ba8cbcac54d1bb1d9a980dab348e96aef467
   React-RCTActionSheet: b1ad907a2c8f8e4d037148ca507b7f2d6ab1c66d

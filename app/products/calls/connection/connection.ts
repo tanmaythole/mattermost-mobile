@@ -12,13 +12,13 @@ import {
     mediaDevices,
 } from 'react-native-webrtc';
 
+import RTCPeer from '@calls/rtcpeer';
 import {getICEServersConfigs} from '@calls/utils';
 import {WebsocketEvents} from '@constants';
 import {getServerCredentials} from '@init/credentials';
 import NetworkManager from '@managers/network_manager';
 import {logError, logDebug, logWarning} from '@utils/log';
 
-import Peer from './simple-peer';
 import {WebSocketClient, wsReconnectionTimeoutErr} from './websocket_client';
 
 import type {CallsConnection} from '@calls/types/calls';
@@ -26,7 +26,7 @@ import type {CallsConnection} from '@calls/types/calls';
 const peerConnectTimeout = 5000;
 
 export async function newConnection(serverUrl: string, channelID: string, closeCb: () => void, setScreenShareURL: (url: string) => void) {
-    let peer: Peer | null = null;
+    let peer: RTCPeer | null = null;
     let stream: MediaStream;
     let voiceTrackAdded = false;
     let voiceTrack: MediaStreamTrack | null = null;
@@ -71,17 +71,19 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
         }
 
         streams.forEach((s) => {
-            s.getTracks().forEach((track: MediaStreamTrack) => {
+            s.getTracks().forEach((track) => {
                 track.stop();
                 track.release();
             });
         });
 
-        peer?.destroy(undefined, undefined, () => {
-            // Wait until the peer connection is closed, which avoids the following racy error that can cause problems with accessing the audio system in the future:
-            // AVAudioSession_iOS.mm:1243  Deactivating an audio session that has running I/O. All I/O should be stopped or paused prior to deactivating the audio session.
-            InCallManager.stop();
-        });
+        // peer?.destroy(undefined, undefined, () => {
+        //     // Wait until the peer connection is closed, which avoids the following racy error that can cause problems with accessing the audio system in the future:
+        //     // AVAudioSession_iOS.mm:1243  Deactivating an audio session that has running I/O. All I/O should be stopped or paused prior to deactivating the audio session.
+        //     InCallManager.stop();
+        // });
+        peer?.destroy();
+        peer = null;
 
         if (closeCb) {
             closeCb();
@@ -95,41 +97,40 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
     });
 
     const mute = () => {
-        if (!peer || peer.destroyed) {
+        if (!peer || !voiceTrack) {
             return;
         }
 
         try {
-            if (voiceTrackAdded && voiceTrack) {
-                peer.replaceTrack(voiceTrack, null, stream);
+            if (voiceTrackAdded) {
+                peer.replaceTrack(voiceTrack.id, null);
             }
         } catch (e) {
-            logError('From simple-peer:', e);
+            logError('From RTCPeer:', e);
             return;
         }
 
-        if (voiceTrack) {
-            voiceTrack.enabled = false;
-        }
+        voiceTrack.enabled = false;
         if (ws) {
             ws.send('mute');
         }
     };
 
     const unmute = () => {
-        if (!peer || !voiceTrack || peer.destroyed) {
+        if (!peer || !voiceTrack) {
             return;
         }
 
         try {
             if (voiceTrackAdded) {
-                peer.replaceTrack(voiceTrack, voiceTrack, stream);
+                //peer.replaceTrack(voiceTrack, voiceTrack, stream);
+                peer.replaceTrack(voiceTrack.id, voiceTrack);
             } else {
                 peer.addStream(stream);
                 voiceTrackAdded = true;
             }
         } catch (e) {
-            logError('From simple-peer:', e);
+            logError('From RTCPeer:', e);
             return;
         }
 
@@ -182,20 +183,43 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
 
         InCallManager.start({media: 'audio'});
         InCallManager.stopProximitySensor();
-        peer = new Peer(null, iceConfigs);
-        peer.on('signal', (data: any) => {
-            if (data.type === 'offer' || data.type === 'answer') {
-                ws.send('sdp', {
-                    data: deflate(JSON.stringify(data)),
-                }, true);
-            } else if (data.type === 'candidate') {
-                ws.send('ice', {
-                    data: JSON.stringify(data.candidate),
-                });
-            }
+
+        console.log('<><> making new peer');
+        peer = new RTCPeer({iceServers: iceConfigs || []}, () => InCallManager.stop());
+
+        // setTimeout(async () => {
+        //     if (peer && voiceTrack) {
+        //         console.log('<><> adding muted voice channel');
+        //         await peer.addStream(stream);
+        //         voiceTrackAdded = true;
+        //         peer.replaceTrack(voiceTrack.id, null);
+        //     }
+        // }, 1000);
+
+        peer.on('offer', (sdp) => {
+            logDebug(`local signal: ${JSON.stringify(sdp)}`);
+            ws.send('sdp', {
+                data: deflate(JSON.stringify(sdp)),
+            }, true);
+        });
+
+        peer.on('answer', (sdp) => {
+            logDebug(`local signal: ${JSON.stringify(sdp)}`);
+            ws.send('sdp', {
+                data: deflate(JSON.stringify(sdp)),
+            }, true);
+        });
+
+        peer.on('candidate', (candidate) => {
+            ws.send('ice', {
+                data: JSON.stringify(candidate),
+            });
         });
 
         peer.on('stream', (remoteStream: MediaStream) => {
+            logDebug('new remote stream received', remoteStream);
+            logDebug('remote tracks', remoteStream.getTracks());
+
             streams.push(remoteStream);
             if (remoteStream.getVideoTracks().length > 0) {
                 setScreenShareURL(remoteStream.toURL());
@@ -243,7 +267,7 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
                 return;
             }
             setTimeout(() => {
-                if (peer?.isConnected) {
+                if (peer?.connected) {
                     callback();
                 } else {
                     waitForReadyImpl(callback, fail, timeout - 200);
@@ -251,11 +275,9 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
             }, 200);
         };
 
-        const promise = new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             waitForReadyImpl(resolve, reject, peerConnectTimeout);
         });
-
-        return promise;
     };
 
     const connection: CallsConnection = {
