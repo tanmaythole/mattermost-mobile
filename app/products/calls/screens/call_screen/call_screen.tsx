@@ -393,6 +393,8 @@ const CallScreen = ({componentId, currentCall, participantsDict, teammateNameDis
                 onPress={toggleControlsInLandscape}
             >
                 <RTCView
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
                     streamURL={currentCall.screenShareURL}
                     style={style.screenShareImage}
                 />

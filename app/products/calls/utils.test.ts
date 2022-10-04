@@ -11,6 +11,7 @@ describe('getICEServersConfigs', () => {
     it('backwards compatible case, no ICEServersConfigs present', () => {
         const config = {
             ICEServers: ['stun:stun.example.com:3478'],
+            ICEServersConfigs: [],
             AllowEnableCalls: true,
             DefaultEnabled: true,
             NeedsTURNCredentials: false,

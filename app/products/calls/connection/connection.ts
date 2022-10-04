@@ -77,11 +77,6 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
             });
         });
 
-        // peer?.destroy(undefined, undefined, () => {
-        //     // Wait until the peer connection is closed, which avoids the following racy error that can cause problems with accessing the audio system in the future:
-        //     // AVAudioSession_iOS.mm:1243  Deactivating an audio session that has running I/O. All I/O should be stopped or paused prior to deactivating the audio session.
-        //     InCallManager.stop();
-        // });
         peer?.destroy();
         peer = null;
 
@@ -184,17 +179,7 @@ export async function newConnection(serverUrl: string, channelID: string, closeC
         InCallManager.start({media: 'audio'});
         InCallManager.stopProximitySensor();
 
-        console.log('<><> making new peer');
         peer = new RTCPeer({iceServers: iceConfigs || []}, () => InCallManager.stop());
-
-        // setTimeout(async () => {
-        //     if (peer && voiceTrack) {
-        //         console.log('<><> adding muted voice channel');
-        //         await peer.addStream(stream);
-        //         voiceTrackAdded = true;
-        //         peer.replaceTrack(voiceTrack.id, null);
-        //     }
-        // }, 1000);
 
         peer.on('offer', (sdp) => {
             logDebug(`local signal: ${JSON.stringify(sdp)}`);

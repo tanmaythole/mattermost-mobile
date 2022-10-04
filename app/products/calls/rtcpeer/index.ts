@@ -7,16 +7,14 @@ import {EventEmitter} from 'events';
 import {
     MediaStream,
     MediaStreamTrack,
-    RTCDataChannel,
     RTCPeerConnection,
+    RTCPeerConnectionIceEvent,
     RTCRtpSender,
     RTCSessionDescription,
 } from 'react-native-webrtc';
 import RTCTrackEvent from 'react-native-webrtc/lib/typescript/RTCTrackEvent';
 
-import {
-    RTCPeerConfig, RTCPeerConnectionIceEvent,
-} from './types';
+import {RTCPeerConfig} from './types';
 
 const rtcConnFailedErr = new Error('rtc connection failed');
 
@@ -24,12 +22,10 @@ export default class RTCPeer extends EventEmitter {
     private pc: RTCPeerConnection | null;
     private readonly senders: { [key: string]: RTCRtpSender };
     private destroyCb?: () => void;
-    private serverDC: RTCDataChannel;
 
     public connected: boolean;
 
     constructor(config: RTCPeerConfig, destroyCb?: () => void) {
-        console.log('<><> RTCPeer constructor');
         super();
 
         // We keep a map of track IDs -> RTP sender so that we can easily
@@ -37,49 +33,28 @@ export default class RTCPeer extends EventEmitter {
         this.senders = {};
 
         this.pc = new RTCPeerConnection(config);
-
-        // @ts-ignore
         this.pc.onnegotiationneeded = () => this.onNegotiationNeeded();
-
-        // @ts-ignore
         this.pc.onicecandidate = (ev) => this.onICECandidate(ev);
-
-        // @ts-ignore
         this.pc.oniceconnectionstatechange = () => this.onICEConnectionStateChange();
-
-        // @ts-ignore
         this.pc.onconnectionstatechange = () => this.onConnectionStateChange();
-
-        // @ts-ignore
         this.pc.ontrack = (ev) => this.onTrack(ev);
 
         this.connected = false;
         this.destroyCb = destroyCb;
 
         // We create a data channel for two reasons:
-        // - Initiate a connection without preemptively add audio/video tracks.
+        // - Initiate a connection without preemptively adding audio/video tracks.
         // - Use this communication channel for further negotiation (to be implemented).
-        console.log('<><> creating data channel');
-        this.serverDC = this.pc.createDataChannel('calls-dc');
-        this.serverDC.onmessage = (msg) => {
-            console.log('<><> received from serverDC:', msg);
-        };
-
-        setTimeout(() => {
-            console.log('<><> sending data');
-            this.serverDC.send('hi!');
-        }, 3000);
+        this.pc.createDataChannel('calls-dc');
     }
 
     private onICECandidate(ev: RTCPeerConnectionIceEvent) {
-        console.log('<><> onICECandidate', ev.candidate);
         if (ev.candidate) {
             this.emit('candidate', ev.candidate);
         }
     }
 
     private onConnectionStateChange() {
-        console.log('<><> onConnectionStateChange', this.pc?.connectionState);
         switch (this.pc?.connectionState) {
             case 'connected':
                 this.connected = true;
@@ -91,7 +66,6 @@ export default class RTCPeer extends EventEmitter {
     }
 
     private onICEConnectionStateChange() {
-        console.log('<><> onICEConnectionStateChange', this.pc?.iceConnectionState);
         switch (this.pc?.iceConnectionState) {
             case 'connected':
                 this.emit('connect');
@@ -102,18 +76,11 @@ export default class RTCPeer extends EventEmitter {
             case 'closed':
                 this.emit('close');
                 break;
-            case 'checking':
-                // FIXME: Force negotiation because it stalls here for some clients.
-                console.log('<><> forcing negotiation');
-
-                //this.onNegotiationNeeded();
-                break;
             default:
         }
     }
 
     private async onNegotiationNeeded() {
-        console.log('<><> onNegotiationNeeded');
         try {
             const desc = await this.pc?.createOffer({}) as RTCSessionDescription;
             await this.pc?.setLocalDescription(desc);
@@ -124,7 +91,6 @@ export default class RTCPeer extends EventEmitter {
     }
 
     private onTrack(ev: RTCTrackEvent) {
-        console.log('<><> onTrack', ev);
         if (ev.streams.length === 0) {
             this.emit('stream', new MediaStream([ev.track]));
             return;
@@ -133,13 +99,11 @@ export default class RTCPeer extends EventEmitter {
     }
 
     public async signal(data: string) {
-        console.log('<><> signal');
         if (!this.pc) {
             throw new Error('peer has been destroyed');
         }
 
         const msg = JSON.parse(data);
-        console.log('<><> msg:', data);
 
         switch (msg.type) {
             case 'candidate':
@@ -168,7 +132,6 @@ export default class RTCPeer extends EventEmitter {
     }
 
     public async addTrack(track: MediaStreamTrack, stream?: MediaStream) {
-        console.log('<><> addTrack');
         if (!this.pc) {
             throw new Error('peer has been destroyed');
         }
@@ -185,7 +148,6 @@ export default class RTCPeer extends EventEmitter {
     }
 
     public replaceTrack(oldTrackID: string, newTrack: MediaStreamTrack | null) {
-        console.log('<><> replaceTrack');
         const sender = this.senders[oldTrackID];
         if (!sender) {
             throw new Error('sender for track not found');
@@ -205,7 +167,6 @@ export default class RTCPeer extends EventEmitter {
     }
 
     public destroy() {
-        console.log('<><> destroy');
         if (!this.pc) {
             throw new Error('peer has been destroyed already');
         }
@@ -218,22 +179,11 @@ export default class RTCPeer extends EventEmitter {
         this.removeAllListeners('offer');
         this.removeAllListeners('answer');
         this.removeAllListeners('stream');
-
-        // @ts-ignore
-        this.pc.onnegotiationneeded = null;
-
-        // @ts-ignore
-        this.pc.onicecandidate = null;
-
-        // @ts-ignore
-        this.pc.oniceconnectionstatechange = null;
-
-        // @ts-ignore
-        this.pc.onconnectionstatechange = null;
-
-        // @ts-ignore
-        this.pc.ontrack = null;
-
+        this.pc.onnegotiationneeded = undefined;
+        this.pc.onicecandidate = undefined;
+        this.pc.oniceconnectionstatechange = undefined;
+        this.pc.onconnectionstatechange = undefined;
+        this.pc.ontrack = undefined;
         this.pc.close();
         this.pc = null;
         this.destroyCb?.();
