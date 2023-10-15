@@ -1,20 +1,13 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {useManagedConfig} from '@mattermost/react-native-emm';
-import Clipboard from '@react-native-clipboard/clipboard';
 import React, {Children, type ReactElement, useCallback} from 'react';
 import {useIntl} from 'react-intl';
-import {Alert, StyleSheet, Text, View} from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {Alert, Text} from 'react-native';
 import urlParse from 'url-parse';
 
-import SlideUpPanelItem, {ITEM_HEIGHT} from '@components/slide_up_panel_item';
 import {useServerUrl} from '@context/server';
-import {useTheme} from '@context/theme';
-import {bottomSheet, dismissBottomSheet} from '@screens/navigation';
 import {handleDeepLink, matchDeepLink} from '@utils/deep_link';
-import {bottomSheetSnapPoint} from '@utils/helpers';
 import {preventDoubleTap} from '@utils/tap';
 import {normalizeProtocol, tryOpenURL} from '@utils/url';
 
@@ -23,13 +16,8 @@ type MarkdownLinkProps = {
     experimentalNormalizeMarkdownLinks: string;
     href: string;
     siteURL: string;
+    onLinkLongPress?: (url?: string) => void;
 }
-
-const style = StyleSheet.create({
-    bottomSheet: {
-        flex: 1,
-    },
-});
 
 const parseLinkLiteral = (literal: string) => {
     let nextLiteral = literal;
@@ -44,12 +32,9 @@ const parseLinkLiteral = (literal: string) => {
     return parsed.href;
 };
 
-const MarkdownLink = ({children, experimentalNormalizeMarkdownLinks, href, siteURL}: MarkdownLinkProps) => {
+const MarkdownLink = ({children, experimentalNormalizeMarkdownLinks, href, siteURL, onLinkLongPress}: MarkdownLinkProps) => {
     const intl = useIntl();
-    const {bottom} = useSafeAreaInsets();
-    const managedConfig = useManagedConfig<ManagedConfig>();
     const serverUrl = useServerUrl();
-    const theme = useTheme();
 
     const {formatMessage} = intl;
 
@@ -107,52 +92,12 @@ const MarkdownLink = ({children, experimentalNormalizeMarkdownLinks, href, siteU
         });
     }, [children]);
 
-    const handleLongPress = useCallback(() => {
-        if (managedConfig?.copyAndPasteProtection !== 'true') {
-            const renderContent = () => {
-                return (
-                    <View
-                        testID='at_mention.bottom_sheet'
-                        style={style.bottomSheet}
-                    >
-                        <SlideUpPanelItem
-                            leftIcon='content-copy'
-                            onPress={() => {
-                                dismissBottomSheet();
-                                Clipboard.setString(href);
-                            }}
-                            testID='at_mention.bottom_sheet.copy_url'
-                            text={intl.formatMessage({id: 'mobile.markdown.link.copy_url', defaultMessage: 'Copy URL'})}
-                        />
-                        <SlideUpPanelItem
-                            destructive={true}
-                            leftIcon='cancel'
-                            onPress={() => {
-                                dismissBottomSheet();
-                            }}
-                            testID='at_mention.bottom_sheet.cancel'
-                            text={intl.formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'})}
-                        />
-                    </View>
-                );
-            };
-
-            bottomSheet({
-                closeButtonId: 'close-mardown-link',
-                renderContent,
-                snapPoints: [1, bottomSheetSnapPoint(2, ITEM_HEIGHT, bottom)],
-                title: intl.formatMessage({id: 'post.options.title', defaultMessage: 'Options'}),
-                theme,
-            });
-        }
-    }, [managedConfig, intl, bottom, theme]);
-
     const renderChildren = experimentalNormalizeMarkdownLinks ? parseChildren() : children;
 
     return (
         <Text
             onPress={handlePress}
-            onLongPress={handleLongPress}
+            onLongPress={() => onLinkLongPress?.(href)}
             testID='markdown_link'
         >
             {renderChildren}
